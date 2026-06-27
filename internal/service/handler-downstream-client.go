@@ -5,18 +5,19 @@ import (
 	"encoding/json"
 	"net/http"
 	"MME/internal/domain"
-	"MME/internal/repository" // Points to our repository layer
+	"MME/internal/repository" // Import the new repository layer
 )
 
 type HttpHandler struct {
-	extractor *ExtractorService
-	dbRepo    *repository.DbRepository // Changed from downstream client to DB repo
+	extractor        *ExtractorService
+	downstreamClient *repository.DownstreamClient
 }
 
-func NewHttpHandler(extractor *ExtractorService, dbRepo *repository.DbRepository) *HttpHandler {
+// Update constructor to take the downstream client
+func NewHttpHandler(extractor *ExtractorService, dsClient *repository.DownstreamClient) *HttpHandler {
 	return &HttpHandler{
-		extractor: extractor,
-		dbRepo:    dbRepo,
+		extractor:        extractor,
+		downstreamClient: dsClient,
 	}
 }
 
@@ -32,16 +33,18 @@ func (h *HttpHandler) ExtractHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Execute extraction business logic
+	// Business logic execution
 	metadata, err := h.extractor.ExtractMetadata(req.ImageURL)
 	if err != nil {
 		http.Error(w, "Failed to extract metadata: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	// Save to Database
-	if err := h.dbRepo.SaveMetadata(metadata); err != nil {
-		http.Error(w, "Metadata extracted but DB save failed: "+err.Error(), http.StatusInternalServerError)
+	// NEW: Forward the result downstream!
+	if err := h.downstreamClient.ForwardMetadata(metadata); err != nil {
+		// Log the error but don't fail the user request if it's non-blocking,
+		// or handle it according to requirements. Here we'll notify the user.
+		http.Error(w, "Metadata extracted but downstream forwarding failed: "+err.Error(), http.StatusBadGateway)
 		return
 	}
 
