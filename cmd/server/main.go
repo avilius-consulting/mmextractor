@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"my-microservice/internal/service"
+	"MME/internal/service"
 )
 
 func main() {
