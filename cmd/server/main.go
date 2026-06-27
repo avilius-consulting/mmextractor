@@ -11,18 +11,22 @@ import (
 
 func main() {
 	port := ":8080"
-	
-	// For testing, change this to your actual downstream API endpoint (e.g., a mock receiver or a database hook)
-    //downstreamURL := "https://httpbin.org/post"
-    downstreamURL := "http://localhost:8081/receiver" 
+	dbFile := "./metadata.db"
 
-	fmt.Printf("🚀 Microservice booting up. Forwarding data to: %s\n", downstreamURL)
+	fmt.Printf("🚀 Microservice booting up. Storage backend: SQLite (%s)\n", dbFile)
 
-	// Dependency Injection
+	// 1. Initialize Database Repository
+	dbRepo, err := repository.NewDbRepository(dbFile)
+	if err != nil {
+		log.Fatalf("❌ Failed to initialize database: %v", err)
+	}
+	defer dbRepo.Close()
+
+	// 2. Dependency Injection
 	extractor := service.NewExtractorService()
-	dsClient := repository.NewDownstreamClient(downstreamURL)
-	handler := service.NewHttpHandler(extractor, dsClient)
+	handler := service.NewHttpHandler(extractor, dbRepo)
 
+	// 3. Routing
 	http.HandleFunc("/extract", handler.ExtractHandler)
 
 	log.Fatal(http.ListenAndServe(port, nil))
