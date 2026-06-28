@@ -36,6 +36,21 @@ message ExtractResponse {
     int64 size_bytes = 4;
 }
 
+# Architecture Model
+
+To model this, we use elements from the Application Layer alongside a couple of external Business Layer actors representing the boundary triggers.
+Active Structure Elements
+Actor: Upstream Client / API User – The user or automated script kicking off the process.
+Application Interface: HTTP REST API (:8080/extract) – The exposed boundary interface of our application.
+Application Component: Media Metadata Extractor Service – The primary software component container (our microservice).
+Application Interface: Downstream Client HTTP Interface – The outgoing connection client.
+Application Component: Downstream Mock Service (:8081/receiver) – The external consuming application.
+Behavior Elements
+Application Function: Image Fetching & Extraction – The core internal logic handled by our ExtractorService.
+Application Function: Metadata Forwarding – The dispatch action handled by our DownstreamClient repository.
+Passive Structure Elements (Data)
+Application Event/Data Object: ExtractRequest JSON – The inbound data payload container (image_url).
+Application Data Object: ImageMetadata JSON – The processed core domain payload (format, width, height, size_bytes).
 
 
 
